@@ -41,18 +41,17 @@ def press_button(channel):
     global rate
     global count
 
-    if GPIO.event_detected(channel):
-        count += 1
-        if count==1:
-            rate = 10.0
-            pass
-        if count==2:
-            rate = 5.0
-            pass
-        if count==3 :
-            rate = 1.0
-            count = 0
-            pass
+    count += 1
+    if count==1:
+        rate = 10.0
+           
+    if count==2:
+        rate = 5.0
+    
+    if count==3 :
+        rate = 1.0
+        count = 0
+            
     print("The rate of sampling is : " + str(rate) + "seconds")
 
 def threading_():
