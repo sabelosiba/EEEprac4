@@ -6,13 +6,14 @@ from adafruit_mcp3xxx.analog_in import AnalogIn
 import RPi.GPIO as GPIO
 import time
 import threading
-import datetime
 
-count = 0
-rate = 0.0
+
+count = 1
+rate = 10.0
 ldr = None
 temp_read = None
 s_time =0
+
 
 def setup_GPIO():
     global temp_read
@@ -26,56 +27,58 @@ def setup_GPIO():
     # create the mcp object
     mcp = MCP.MCP3008(spi, cs)
 
-    # create an analog input channel on pin 0
-    temp_read = AnalogIn(mcp, MCP.P1)
+    # create an analog input channel on pin 2 and pin 3
+    temp_read = AnalogIn(mcp, MCP.P2)
     ldr = AnalogIn(mcp, MCP.P3)
     #print("Raw ADC Value: ", chan.value)
 
     #print("ADC Voltage: " + str(chan.voltage) + "V")
 
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(22, GPIO.FALLING, callback=press_button, bouncetime=100)
-
+    GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    GPIO.add_event_detect(22, GPIO.RISING, callback=press_button, bouncetime=200)
+        
 def press_button(channel):
-    print("button pressed")
     global rate
     global count
-    count += 1
 
-    if count==1:
-        rate = 10.0
-    if count==2:
-        rate = 5.0
-    if count==3 :
-        rate = 1.0
-        count = 0
-    #print("The rate of sampling is : " + rate + "seconds")
-    #output_line =  ("Runtime","Temp Reading", "Temp", "Light Reading")
-    #print("{0: <20} {1: <20} {2: <20}".format(*output_line))
+    if GPIO.event_detected(channel):
+        count += 1
+        if count==1:
+            rate = 10.0
+            pass
+        if count==2:
+            rate = 5.0
+            pass
+        if count==3 :
+            rate = 1.0
+            count = 0
+            pass
+    print("The rate of sampling is : " + str(rate) + "seconds")
 
 def threading_():
+    global rate , s_time
     thread = threading.Timer(rate, threading_)
     thread.daemon = True
     thread.start()
 
-    rate_time =int( time.time() - s_time )
+    end_time = time.time()
+    rate_time = int( end_time - s_time )
 
     runtime = str(rate_time) + "s"
     temp_Read = temp_read.value
-    temp = str( round( (temp_read.voltage - 0.5)/0.01, 2 ) ) + " C"
+    temp = str( round( ((temp_read.voltage - 0.5)/0.01), 2 ) ) + " C"
     light_Read = ldr.value
 
-    print("{0:<20} {1:<20} {2:<20} {3:<20}".format(runtime , temp_Read , temp , li$
+    print("{:<15} {:<15} {:<15} {:<15}".format(runtime , temp_Read , temp , light_Read))
 
 if __name__ == "__main__":
     try:
-        setup_GPIO()
+        setup_GPIO()                
         s_time = time.time()
-        print("The rate of sampling is : " + str(rate) + "seconds")
         output_line =  ("Runtime","Temp Reading", "Temp", "Light Reading")
-        print("{0: <20} {1: <20} {2: <20} {3: <20}".format(*output_line))
+        print("{0: <15} {1: <15} {2: <15} {3: <15}".format(*output_line))
         threading_()
+
         while True:
             pass
     except KeyboardInterrupt:
@@ -86,5 +89,4 @@ if __name__ == "__main__":
         GPIO.cleanup()
     finally:
         GPIO.cleanup()
-
 
